@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+// Stable, backend-agnostic contract (design §4, NFR-12). Adding a backend or
+// compute path never changes this file.
+package cvis.v1;
+
+enum DataType {
+  DT_UNSPECIFIED = 0;
+  DT_FLOAT32 = 1;
+  DT_FLOAT16 = 2;
+  DT_INT8    = 3;
+  DT_UINT8   = 4;
+  DT_INT32   = 5;
+  DT_INT64   = 6;
+}
+
+message Tensor {
+  string name = 1;          // input/output binding name
+  DataType dtype = 2;
+  repeated int64 shape = 3; // per-sample shape at the API edge
+  bytes raw_data = 4;       // little-endian contiguous payload
+}
+
+message InferRequest {
+  string model_id = 1;       // FR-4/FR-12 target model
+  string correlation_id = 2; // FR-12/FR-14 echoed on response
+  repeated Tensor inputs = 3;
+}
+
+message InferResponse {
+  string model_id = 1;
+  string correlation_id = 2; // mirrors request (FR-14)
+  repeated Tensor outputs = 3;
+  ErrorInfo error = 4;       // set on per-item failure in a stream; unset on success
+}
+
+message ErrorInfo {
+  int32 code = 1;            // maps to canonical gRPC status codes
+  string message = 2;
+}
+
+message ModelInfo {
+  string model_id = 1;
+  string backend = 2;        // "onnxruntime" | "tensorrt" | "fake"
+  bool ready = 3;
+}
+
+message ListModelsRequest {}
+message ListModelsResponse { repeated ModelInfo models = 1; }
+
+// Optional/deferred (OQ-6): runtime management. Present in the contract, may
+// return UNIMPLEMENTED in v1.
+message LoadModelRequest  { string model_id = 1; string path = 2; string backend = 3; }
+message LoadModelResponse { ModelInfo model = 1; ErrorInfo error = 2; }
+message UnloadModelRequest  { string model_id = 1; }
+message UnloadModelResponse { ErrorInfo error = 1; }
+
+service InferenceService {
+  rpc Infer(InferRequest) returns (InferResponse);                     // FR-10
+  rpc StreamInfer(stream InferRequest) returns (stream InferResponse); // FR-11/FR-14
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);      // FR-3
+  rpc LoadModel(LoadModelRequest) returns (LoadModelResponse);         // FR-5 (deferred)
+  rpc UnloadModel(UnloadModelRequest) returns (UnloadModelResponse);   // FR-5 (deferred)
+}

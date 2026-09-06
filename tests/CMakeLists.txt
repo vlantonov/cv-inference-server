@@ -4,6 +4,9 @@
 include(FetchContent)
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+# Keep GoogleTest out of `cmake --install` / CPack: it is a test-only dependency
+# and must not leak its headers/libs into the release artifact.
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
@@ -33,4 +36,9 @@ target_link_libraries(cvis_tests
         cvis_warnings cvis_sanitizers Threads::Threads
 )
 
-gtest_discover_tests(cvis_tests)
+# DISCOVERY_MODE PRE_TEST (QA defect D-1): defer test enumeration to `ctest`
+# invocation instead of running the freshly-built binary at build time. Under
+# sanitizers on high-ASLR-entropy kernels, the post-build discovery run aborts
+# with "ThreadSanitizer: unexpected memory mapping"; deferring discovery makes
+# the sanitizer CI job reproducible without a build-time setarch wrapper.
+gtest_discover_tests(cvis_tests DISCOVERY_MODE PRE_TEST)

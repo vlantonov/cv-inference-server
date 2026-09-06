@@ -1,0 +1,60 @@
+# GitLab CI/CD mirror of the GitHub Actions pipeline (project targets both).
+# Same CPU-only contract: modern CMake + g++, GoogleTest via FetchContent, all
+# heavy/GPU deps auto-gated OFF (design §12, NFR-8). Kept lean and free-tier safe.
+stages:
+  - build-test
+  - sanitizers
+
+default:
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq --no-install-recommends cmake g++ make ca-certificates util-linux
+    - cmake --version
+    - g++ --version
+
+variables:
+  # Keep FetchContent downloads in a stable, cacheable path.
+  FETCHCONTENT_BASE_DIR: "$CI_PROJECT_DIR/.deps"
+
+# GoogleTest is version+hash-pinned in tests/CMakeLists.txt, so cache on it.
+.deps_cache: &deps_cache
+  cache:
+    key:
+      files:
+        - tests/CMakeLists.txt
+    paths:
+      - .deps/
+
+# ---------------------------------------------------------------------------
+# Plain CPU Release build + full test suite.
+# ---------------------------------------------------------------------------
+build-test:
+  stage: build-test
+  <<: *deps_cache
+  script:
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    - cmake --build build --parallel
+    - ctest --test-dir build --output-on-failure
+
+# ---------------------------------------------------------------------------
+# Sanitizer matrix: TSan and ASan/UBSan.
+#
+# QA defect D-1: DISCOVERY_MODE PRE_TEST (tests/CMakeLists.txt) keeps the build
+# green by deferring test discovery to ctest, and `setarch -R` disables ASLR so
+# the instrumented binary maps cleanly on high-entropy kernels.
+# ---------------------------------------------------------------------------
+sanitizers:
+  stage: sanitizers
+  <<: *deps_cache
+  parallel:
+    matrix:
+      - CVIS_SANITIZER: [thread, address]
+  script:
+    - >
+      cmake -S . -B build-san
+      -DCMAKE_BUILD_TYPE=Debug
+      -DCVIS_ENABLE_SANITIZERS=ON
+      -DCVIS_SANITIZER=$CVIS_SANITIZER
+    - cmake --build build-san --parallel
+    - setarch "$(uname -m)" -R ctest --test-dir build-san --output-on-failure

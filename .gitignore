@@ -44,6 +44,16 @@ build/
 Build/
 build-*/
 
+# CPack output & install/staging prefixes
+_CPack_Packages/
+CPackConfig.cmake
+CPackSourceConfig.cmake
+*.tar.gz
+*.tgz
+/install/
+/dist/
+/stage/
+
 # CMake generated files
 CMakeFiles/
 CMakeCache.txt

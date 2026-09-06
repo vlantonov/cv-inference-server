@@ -29,3 +29,6 @@ if(CVIS_HAVE_JSON)
 endif()
 
 set_target_properties(cvis_bench PROPERTIES OUTPUT_NAME cvis-bench)
+
+# Stage the benchmark harness for `cmake --install` / CPack (design §5.1).
+install(TARGETS cvis_bench RUNTIME DESTINATION bin COMPONENT applications)

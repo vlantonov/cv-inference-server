@@ -1,0 +1,101 @@
+# CPU-only continuous integration for cv-inference-server.
+#
+# The design guarantees a green build + ctest on a bare CPU machine: every heavy
+# dependency (gRPC, ONNX Runtime, prometheus-cpp, yaml-cpp/CLI11) auto-gates OFF
+# when absent, and GoogleTest is fetched via FetchContent. So CI needs nothing
+# beyond a modern CMake + g++ -- no GPU, no package manager (design §12, NFR-8).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save free-tier minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Plain CPU Release build + full test suite.
+  # ---------------------------------------------------------------------------
+  build-test:
+    name: Release build + ctest
+    runs-on: ubuntu-latest
+    env:
+      # Keep FetchContent downloads outside the build tree so they survive a
+      # clean reconfigure and can be cached independently of build artifacts.
+      FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.deps
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain versions
+        run: |
+          cmake --version
+          g++ --version
+
+      # GoogleTest is version+hash-pinned in tests/CMakeLists.txt, so keying the
+      # cache on that file invalidates only when the pin changes.
+      - name: Cache FetchContent (GoogleTest)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.deps
+          key: deps-${{ runner.os }}-${{ hashFiles('tests/CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
+
+      - name: Configure (Release)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  # ---------------------------------------------------------------------------
+  # Sanitizer matrix: ThreadSanitizer and AddressSanitizer/UBSan.
+  #
+  # QA defect D-1: on high-ASLR-entropy kernels the instrumented binary aborts
+  # with "ThreadSanitizer: unexpected memory mapping". Two-part fix:
+  #   1. `gtest_discover_tests(... DISCOVERY_MODE PRE_TEST)` (tests/CMakeLists.txt)
+  #      keeps the build itself green by deferring test enumeration to ctest.
+  #   2. `setarch -R` disables ASLR for the ctest run so discovery + tests map
+  #      cleanly. Baking it into the pipeline makes the job reproducible with no
+  #      manual intervention.
+  # ---------------------------------------------------------------------------
+  sanitizers:
+    name: Sanitizer (${{ matrix.sanitizer }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [thread, address]
+    env:
+      FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.deps
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache FetchContent (GoogleTest)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.deps
+          key: deps-${{ runner.os }}-${{ hashFiles('tests/CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
+
+      - name: Configure (${{ matrix.sanitizer }} sanitizer)
+        run: >
+          cmake -S . -B build-san
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCVIS_ENABLE_SANITIZERS=ON
+          -DCVIS_SANITIZER=${{ matrix.sanitizer }}
+
+      - name: Build
+        run: cmake --build build-san --parallel
+
+      # setarch -R (ADDR_NO_RANDOMIZE) makes the sanitizer run deterministic.
+      - name: Test (ASLR disabled)
+        run: setarch "$(uname -m)" -R ctest --test-dir build-san --output-on-failure

@@ -1,0 +1,50 @@
+# Release pipeline: on an annotated tag push `v*`, build a CPU Release, gate on
+# the full test suite, package a versioned TGZ with CPack, and attach it to the
+# GitHub Release. Tagging itself is performed by the PM (semver-version-publish);
+# this workflow only reacts to a tag once it exists.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# The gh-release step needs write access to create/update the Release.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, test, package, publish
+    runs-on: ubuntu-latest
+    env:
+      FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.deps
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain versions
+        run: |
+          cmake --version
+          g++ --version
+
+      - name: Configure (Release)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # Never ship a red build: the release is gated on the same tests as CI.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package (CPack TGZ)
+        run: cpack -G TGZ --config build/CPackConfig.cmake -B "${{ github.workspace }}/dist"
+
+      - name: List artifacts
+        run: ls -1 "${{ github.workspace }}/dist"/*.tar.gz
+
+      - name: Attach tarball to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ github.workspace }}/dist/*.tar.gz
+          fail_on_unmatched_files: true

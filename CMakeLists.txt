@@ -83,3 +83,19 @@ message(STATUS "  CUDA (ORT CUDA EP) .... ${CVIS_ENABLE_CUDA}")
 message(STATUS "  TensorRT backend ...... ${CVIS_ENABLE_TENSORRT}")
 message(STATUS "  Vulkan bench path ..... ${CVIS_ENABLE_VULKAN_BENCH}")
 message(STATUS "")
+
+# ---------------------------------------------------------------------------
+# Packaging (CPack) -- produce a versioned TGZ of the staged install tree.
+# `cpack -G TGZ` (or `cpack --config build/CPackConfig.cmake`) yields
+# cv-inference-server-<version>-<system>.tar.gz for release artifacts.
+# ---------------------------------------------------------------------------
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VENDOR "cv-inference-server")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_FILE_NAME
+    "${PROJECT_NAME}-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+set(CPACK_VERBATIM_VARIABLES ON)
+include(CPack)

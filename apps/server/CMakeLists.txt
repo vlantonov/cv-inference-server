@@ -7,3 +7,6 @@ target_link_libraries(cvis_server
 )
 
 set_target_properties(cvis_server PROPERTIES OUTPUT_NAME cvis-server)
+
+# Stage the server binary for `cmake --install` / CPack (design §5.1).
+install(TARGETS cvis_server RUNTIME DESTINATION bin COMPONENT applications)

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstring>
 #include <future>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -174,4 +175,70 @@ TEST(DynamicBatcher, BackpressureReturnsResourceExhaustedWhenQueueFull) {
     auto overflow = batcher.submit(makeRequest("overflow", 99.0f));
     ASSERT_FALSE(overflow.has_value());
     EXPECT_EQ(overflow.error().code, core::StatusCode::kResourceExhausted);
+}
+
+// FR-17/FR-19: batching must be transparent -- the same inputs yield the same
+// outputs whether coalesced into one batch or dispatched one-per-request via the
+// disable path. Proves the pipeline neither corrupts nor mis-demuxes payloads.
+TEST(DynamicBatcher, BatchedResultsIdenticalToDisabledPath) {
+    const std::vector<std::pair<std::string, float>> inputs = {
+        {"a", 1.5f}, {"b", 2.5f}, {"c", 3.5f}, {"d", 4.5f}};
+
+    const auto run = [&](bool enabled, std::size_t max_batch) {
+        BatcherFixture fx;
+        batching::BatchingConfig cfg;
+        cfg.enabled = enabled;
+        cfg.max_batch_size = max_batch;
+        cfg.max_wait = 10s;
+        cfg.max_queue_depth = 256;
+        batching::DynamicBatcher batcher(cfg, fx.scheduler, fx.metrics);
+
+        std::vector<std::future<core::InferResponse>> futs;
+        for (const auto& [corr, val] : inputs) {
+            auto submitted = batcher.submit(makeRequest(corr, val));
+            EXPECT_TRUE(submitted.has_value());
+            futs.push_back(std::move(submitted).value());
+        }
+        std::map<std::string, float> results;
+        for (auto& f : futs) {
+            const core::InferResponse r = f.get();
+            results[r.correlation_id] = firstValue(r);
+        }
+        return results;
+    };
+
+    const std::map<std::string, float> batched = run(/*enabled=*/true, /*max_batch=*/4);
+    const std::map<std::string, float> unbatched = run(/*enabled=*/false, /*max_batch=*/8);
+
+    ASSERT_EQ(batched.size(), inputs.size());
+    EXPECT_EQ(batched, unbatched);
+}
+
+// FR-26/AC-6: the batcher (request count, queue depth) and scheduler (effective
+// batch size, latency) must actually record metrics as work flows through the
+// pipeline -- verified end-to-end, not just on the registry in isolation.
+TEST(DynamicBatcher, RecordsRequestAndBatchMetricsThroughPipeline) {
+    BatcherFixture fx;
+    batching::BatchingConfig cfg;
+    cfg.enabled = true;
+    cfg.max_batch_size = 4;
+    cfg.max_wait = 10s;
+    cfg.max_queue_depth = 256;
+    batching::DynamicBatcher batcher(cfg, fx.scheduler, fx.metrics);
+
+    std::vector<std::future<core::InferResponse>> futs;
+    for (int i = 0; i < 4; ++i) {
+        auto submitted = batcher.submit(makeRequest("c" + std::to_string(i),
+                                                    static_cast<float>(i)));
+        ASSERT_TRUE(submitted.has_value());
+        futs.push_back(std::move(submitted).value());
+    }
+    for (auto& f : futs) {
+        ASSERT_EQ(f.wait_for(2s), std::future_status::ready);
+        EXPECT_TRUE(f.get().status.ok());
+    }
+
+    EXPECT_EQ(fx.metrics.requests("m"), 4u);   // incremented on submit (FR-26)
+    EXPECT_GE(fx.metrics.batches("m"), 1u);     // effective batch size observed
+    EXPECT_EQ(fx.metrics.errors("m"), 0u);
 }

@@ -18,6 +18,7 @@ find_package(Threads REQUIRED)
 add_executable(cvis_tests
     test_core.cpp
     test_fake_backend.cpp
+    test_backend_factory.cpp
     test_metrics.cpp
     test_scheduler.cpp
     test_dynamic_batcher.cpp

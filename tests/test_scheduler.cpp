@@ -138,6 +138,31 @@ TEST(Scheduler, BoundedInFlightReturnsResourceExhausted) {
     EXPECT_TRUE(futs2[0].get().status.ok());
 }
 
+TEST(Scheduler, BackendFailurePropagatesErrorAndRecordsMetrics) {
+    metrics::MetricsRegistry metrics;
+    NiceMock<cvis::testing::MockBackend> backend;
+    // Backend rejects the whole batch (FR-2/FR-13): every promise must receive
+    // the error and the failure must be counted (FR-26), with no future hanging.
+    EXPECT_CALL(backend, executeBatch(_))
+        .WillRepeatedly(Invoke([](std::span<const core::InferRequest* const>) {
+            return core::Expected<std::vector<core::InferResponse>>(
+                core::Status::Error(core::StatusCode::kInternal, "boom"));
+        }));
+
+    scheduler::Scheduler sched(scheduler::SchedulerConfig{/*workers=*/1, /*max_in_flight=*/4},
+                               metrics);
+    sched.registerModel("m", backend);
+
+    auto [job, futs] = makeJob("m", {"a", "b"});
+    ASSERT_TRUE(sched.enqueue(std::move(job)).ok());
+
+    for (auto& f : futs) {
+        ASSERT_EQ(f.wait_for(2s), std::future_status::ready);
+        EXPECT_EQ(f.get().status.code, core::StatusCode::kInternal);
+    }
+    EXPECT_EQ(metrics.errors("m"), 2u);   // one per failed request
+}
+
 TEST(Scheduler, NoStarvationAcrossModels) {
     metrics::MetricsRegistry metrics;
     NiceMock<cvis::testing::MockBackend> backend_a;

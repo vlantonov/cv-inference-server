@@ -4,13 +4,7 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<!--
-The version/date heading below is finalized by the Project Manager via the
-semver-version-publish skill when the first release tag is cut. Until then this
-section describes the first release contents.
--->
-
-## [Unreleased] — first release
+## [0.1.0] — 2026-09-07
 
 Initial implementation: a CPU vertical slice of a real-time CV model serving
 system, with the GPU/accelerated layers designed and wired but gated OFF by
@@ -76,4 +70,4 @@ default.
   GPU CI (R-1), the Vulkan benchmark compute path (OQ-1 / R-5), and empirical GPU
   latency baselining (NFR-1 / OQ-2).
 
-[Unreleased]: https://github.com/vladiant/cv-inference-server/commits/main
+[0.1.0]: https://github.com/vladiant/cv-inference-server/releases/tag/v0.1.0

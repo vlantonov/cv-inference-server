@@ -29,7 +29,7 @@ jobs:
       # clean reconfigure and can be cached independently of build artifacts.
       FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.deps
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Show toolchain versions
         run: |
@@ -39,7 +39,7 @@ jobs:
       # GoogleTest is version+hash-pinned in tests/CMakeLists.txt, so keying the
       # cache on that file invalidates only when the pin changes.
       - name: Cache FetchContent (GoogleTest)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.deps
           key: deps-${{ runner.os }}-${{ hashFiles('tests/CMakeLists.txt') }}
@@ -76,10 +76,10 @@ jobs:
     env:
       FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.deps
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Cache FetchContent (GoogleTest)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.deps
           key: deps-${{ runner.os }}-${{ hashFiles('tests/CMakeLists.txt') }}

@@ -20,7 +20,7 @@ jobs:
     env:
       FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.deps
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Show toolchain versions
         run: |
@@ -44,7 +44,7 @@ jobs:
         run: ls -1 "${{ github.workspace }}/dist"/*.tar.gz
 
       - name: Attach tarball to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ github.workspace }}/dist/*.tar.gz
           fail_on_unmatched_files: true

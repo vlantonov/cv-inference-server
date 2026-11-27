@@ -150,6 +150,38 @@ The full design (with interface signatures, concurrency model, and rationale) is
 
 ---
 
+## Documentation
+
+The public API is documented with **Doxygen** comments across every `cvis_*`
+module header plus the `cvis-server` / `cvis-bench` mains, rendering nine module
+group pages, a landing `@mainpage`, and a **C4 Component View** page whose diagram
+is the real, unidirectional module dependency graph (gated layers marked). Graphs
+are drawn with GraphViz `dot`; the C4 diagram uses C4-PlantUML. Output is HTML-only
+into the build tree at `build/docs/html/index.html`.
+
+Build it locally (opt-in; off by default):
+
+```bash
+sudo apt-get install -y doxygen graphviz plantuml
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCVIS_BUILD_DOCS=ON
+cmake --build build --target docs
+```
+
+The `docs` target is **not** part of `ALL`, so a normal CPU build is unaffected;
+when `doxygen` is absent the target is simply skipped.
+
+On the default branch, CI publishes the rendered docs to **GitHub Pages** (the
+`Docs` workflow in `.github/workflows/docs.yml`) **and** **GitLab Pages** (the
+`pages` job/stage in `.gitlab-ci.yml`). Publishing requires one-time repo
+enablement (GitHub *Settings → Pages → Source: GitHub Actions*; GitLab
+*Deploy → Pages*). Published URL: _<maintainer to fill in once Pages is enabled>_.
+
+Design rationale for the docs/C4 setup is in
+[docs/design/doxygen-c4.md](docs/design/doxygen-c4.md); the CI pipeline is
+described in [docs/ci-cd/cv-inference-server-pipeline.md](docs/ci-cd/cv-inference-server-pipeline.md).
+
+---
+
 ## Build (CPU-only default)
 
 Requires CMake ≥ 3.24 and a C++20 compiler (GCC/Clang). GoogleTest is fetched
@@ -180,6 +212,7 @@ dependency).
 | `CVIS_SANITIZER` | `address` | Sanitizer to use when enabled: `address` \| `thread`. |
 | `CVIS_BUILD_TESTS` | ON | Build unit tests and register them with CTest. |
 | `CVIS_BUILD_BENCH` | ON | Build the `cvis-bench` harness. |
+| `CVIS_BUILD_DOCS` | OFF | Build the Doxygen API docs via the non-ALL `docs` target (requires `doxygen`; `graphviz`/`plantuml` for the graphs and C4 diagram). |
 | `CVIS_ENABLE_GRPC` | auto | gRPC transport; ON iff protobuf + gRPC are found. |
 | `CVIS_ENABLE_ONNXRUNTIME` | auto | ONNX Runtime backend; ON iff `onnxruntime` is found. |
 | `CVIS_ENABLE_METRICS_HTTP` | auto | `/metrics` HTTP exposer; ON iff prometheus-cpp is found. |

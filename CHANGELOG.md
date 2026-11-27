@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Doxygen documentation setup (minor).** Opt-in `CVIS_BUILD_DOCS` CMake option
+  (default OFF) adding a non-ALL `docs` target (`cmake/Docs.cmake`) that renders
+  HTML-only API docs into the build tree (`build/docs/html/index.html`) from a
+  CMake-substituted `docs/Doxyfile.in`. GraphViz `dot` and C4-PlantUML are enabled
+  (SVG graphs). New Doxygen pages under `docs/doxygen/`: a `@mainpage`, per-module
+  `@defgroup` declarations, and a **C4 Component View** (`c4_components.dox`)
+  embedding a C4-PlantUML diagram of the real unidirectional `cvis_*` module
+  dependencies (gated layers marked). Build locally with
+  `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCVIS_BUILD_DOCS=ON &&
+  cmake --build build --target docs` (needs `doxygen graphviz plantuml`). Design
+  note: `docs/design/doxygen-c4.md`.
+- **API doc comments (patch).** Doxygen comments added across the public headers of
+  `cvis_core`, `cvis_backends`, `cvis_batching`, `cvis_scheduler`, `cvis_metrics`,
+  `cvis_api`, and `cvis_runtime`, plus the `cvis-server` and `cvis-bench` mains —
+  rendering nine module group pages.
+- **Docs publishing via CI (patch).** Default-branch-only publishing of the
+  rendered docs to **GitHub Pages** (`Docs` workflow, `.github/workflows/docs.yml`:
+  build + deploy) **and** **GitLab Pages** (`pages` job + `pages` stage in
+  `.gitlab-ci.yml`). Requires one-time repo enablement (GitHub *Settings → Pages →
+  Source: GitHub Actions*; GitLab *Deploy → Pages*); see
+  `docs/ci-cd/cv-inference-server-pipeline.md`.
+
 ## [0.1.0] — 2026-09-07
 
 Initial implementation: a CPU vertical slice of a real-time CV model serving
@@ -70,4 +96,5 @@ default.
   GPU CI (R-1), the Vulkan benchmark compute path (OQ-1 / R-5), and empirical GPU
   latency baselining (NFR-1 / OQ-2).
 
+[Unreleased]: https://github.com/vladiant/cv-inference-server/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/vladiant/cv-inference-server/releases/tag/v0.1.0

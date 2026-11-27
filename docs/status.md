@@ -2,7 +2,7 @@
 
 - **Project:** `cv-inference-server`
 - **Doc type:** Running project status (PM-facing ground truth)
-- **CMake version:** 0.1.0 (release tag applied separately by the PM via the
+- **CMake version:** 0.2.0 (release tag applied separately by the PM via the
   semver-version-publish skill)
 - **Last updated:** 2026-11-28 (Documentation stage)
 

@@ -1,10 +1,22 @@
 #pragma once
 
+/**
+ * @file data_type.hpp
+ * @brief Tensor element data types and their byte/name helpers.
+ * @ingroup cvis_core
+ */
+
 #include <cstddef>
 
 namespace cvis::core {
 
-/// Element data types carried by a Tensor (mirrors cvis.v1.DataType, design §4).
+/**
+ * @brief Element data types carried by a Tensor.
+ *
+ * Mirrors `cvis.v1.DataType` on the wire (design §4), so values stay stable
+ * across the proto <-> core boundary.
+ * @ingroup cvis_core
+ */
 enum class DataType {
     kUnspecified,
     kFloat32,
@@ -15,11 +27,20 @@ enum class DataType {
     kInt64,
 };
 
-/// Number of bytes occupied by a single element of \p dt. Returns 0 for
-/// kUnspecified.
+/**
+ * @brief Number of bytes occupied by a single element of the given type.
+ * @param dt Element data type.
+ * @return Element size in bytes; 0 for DataType::kUnspecified.
+ * @ingroup cvis_core
+ */
 std::size_t byteSize(DataType dt) noexcept;
 
-/// Stable lower-case name for a data type (diagnostics / metrics labels).
+/**
+ * @brief Stable lower-case name for a data type (diagnostics / metrics labels).
+ * @param dt Element data type.
+ * @return Null-terminated static string; never nullptr.
+ * @ingroup cvis_core
+ */
 const char* toString(DataType dt) noexcept;
 
 } // namespace cvis::core

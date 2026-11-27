@@ -1,5 +1,12 @@
 #pragma once
 
+/**
+ * @file metrics_registry.hpp
+ * @brief Thread-safe, dependency-free metrics façade with Prometheus-text
+ *        rendering.
+ * @ingroup cvis_metrics
+ */
+
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -12,13 +19,16 @@
 
 namespace cvis::metrics {
 
-/// Thread-safe, dependency-free metrics façade (design interfaces §5).
-///
-/// The design proposes prometheus-cpp as the backing store; to keep the
-/// scheduler/batching layers testable on a bare CPU machine this façade is
-/// implemented self-contained and exposes Prometheus text via scrape(). When
-/// prometheus-cpp is available the HTTP exposer (guarded, CVIS_ENABLE_METRICS_HTTP)
-/// scrapes this same façade.
+/**
+ * @brief Thread-safe, dependency-free metrics façade (design interfaces §5).
+ *
+ * The design proposes prometheus-cpp as the backing store; to keep the
+ * scheduler/batching layers testable on a bare CPU machine this façade is
+ * implemented self-contained and exposes Prometheus text via scrape(). When
+ * prometheus-cpp is available the HTTP exposer (guarded,
+ * `CVIS_ENABLE_METRICS_HTTP`) scrapes this same façade.
+ * @ingroup cvis_metrics
+ */
 class MetricsRegistry {
 public:
     MetricsRegistry() = default;
@@ -26,11 +36,16 @@ public:
     MetricsRegistry(const MetricsRegistry&) = delete;
     MetricsRegistry& operator=(const MetricsRegistry&) = delete;
 
+    /// @brief Increment the request counter for @p model_id (FR-26). THREAD-SAFE.
     void incRequests(std::string_view model_id) noexcept;                 // FR-26
+    /// @brief Increment the error counter for @p model_id. THREAD-SAFE.
     void incErrors(std::string_view model_id) noexcept;
+    /// @brief Record a per-request latency sample @p d for @p model_id. THREAD-SAFE.
     void observeLatency(std::string_view model_id,
                         std::chrono::nanoseconds d) noexcept;
+    /// @brief Record an executed batch of size @p n for @p model_id. THREAD-SAFE.
     void observeBatchSize(std::string_view model_id, std::size_t n) noexcept;
+    /// @brief Set the current queue depth gauge for @p model_id. THREAD-SAFE.
     void setQueueDepth(std::string_view model_id, std::size_t n) noexcept;
 
     // --- read accessors (primarily for tests / bench) ---
@@ -39,7 +54,7 @@ public:
     [[nodiscard]] std::uint64_t batches(std::string_view model_id) const;
     [[nodiscard]] std::size_t queueDepth(std::string_view model_id) const;
 
-    /// Renders Prometheus text exposition format (design OQ-4).
+    /// @brief Render all metrics in Prometheus text exposition format (design OQ-4).
     [[nodiscard]] std::string scrape() const;
 
 private:

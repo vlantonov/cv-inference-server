@@ -1,5 +1,11 @@
 #pragma once
 
+/**
+ * @file server_app.hpp
+ * @brief ServerApp composition root owning the full server lifecycle.
+ * @ingroup cvis_runtime
+ */
+
 #include <memory>
 
 #include "cvis/core/expected.hpp"
@@ -8,12 +14,22 @@
 
 namespace cvis::runtime {
 
-/// Composition root. Owns all long-lived objects (ModelRegistry -> backends,
-/// Scheduler, DynamicBatcher, MetricsRegistry, and -- when built with gRPC --
-/// the gRPC server). RAII teardown in reverse construction order (design §6,
-/// NFR-5). Startup errors surface as a clear diagnostic + non-zero exit (NFR-13).
+/**
+ * @brief Composition root owning all long-lived objects.
+ *
+ * Owns the ModelRegistry (-> backends), Scheduler, DynamicBatcher,
+ * MetricsRegistry, and -- when built with gRPC -- the gRPC server. RAII teardown
+ * happens in reverse construction order (design §6, NFR-5). Startup errors
+ * surface as a clear diagnostic + non-zero exit (NFR-13).
+ * @ingroup cvis_runtime
+ */
 class ServerApp {
 public:
+    /**
+     * @brief Build and wire the whole server from @p cfg.
+     * @param cfg Fully-resolved configuration.
+     * @return A ready ServerApp, or a Status describing the startup failure.
+     */
     static core::Expected<ServerApp> create(Config cfg);
 
     ServerApp(ServerApp&&) noexcept;
@@ -23,10 +39,10 @@ public:
     ServerApp(const ServerApp&) = delete;
     ServerApp& operator=(const ServerApp&) = delete;
 
-    /// Blocks until a shutdown is requested (signal or requestShutdown()).
+    /// @brief Block until a shutdown is requested (signal or requestShutdown()).
     core::Status run();
 
-    /// Graceful drain; safe to call from a signal handler / another thread.
+    /// @brief Request a graceful drain; safe from a signal handler / other thread.
     void requestShutdown() noexcept;
 
 private:

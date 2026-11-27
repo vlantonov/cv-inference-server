@@ -1,5 +1,11 @@
 #pragma once
 
+/**
+ * @file tensorrt_backend.hpp
+ * @brief TensorRT inference backend (ONNX->TRT with an on-disk engine cache).
+ * @ingroup cvis_backends
+ */
+
 // Compiled only under CVIS_ENABLE_TENSORRT (implies CVIS_ENABLE_CUDA). ONNX->TRT
 // build with an on-disk engine cache keyed by model hash + TRT version + device
 // (design interfaces §2, OQ-3, R-4). Not part of the default CPU build.
@@ -10,6 +16,16 @@
 
 namespace cvis::backends {
 
+/**
+ * @brief TensorRT backend: builds an engine from ONNX and caches it on disk,
+ *        keyed by model hash + TRT version + device (OQ-3, R-4).
+ *
+ * The TRT/CUDA types are hidden behind a PIMPL to keep this header dependency-
+ * light.
+ * @note Compiled only under `CVIS_ENABLE_TENSORRT` (implies `CVIS_ENABLE_CUDA`);
+ *       not part of the default CPU build.
+ * @ingroup cvis_backends
+ */
 class TensorRtBackend final : public IInferenceBackend {
 public:
     TensorRtBackend();

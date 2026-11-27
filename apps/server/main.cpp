@@ -1,3 +1,11 @@
+/**
+ * @file main.cpp
+ * @brief `cvis-server` executable: thin composition entrypoint.
+ * @ingroup cvis_server
+ *
+ * Loads configuration, builds a ServerApp, installs SIGINT/SIGTERM handlers for
+ * a graceful drain, and runs until shutdown (design §6).
+ */
 #include <atomic>
 #include <csignal>
 #include <iostream>
@@ -15,6 +23,13 @@ void handleSignal(int) {
 }
 } // namespace
 
+/**
+ * @brief Process entrypoint: wire configuration + ServerApp and run to shutdown.
+ * @param argc Argument count.
+ * @param argv Argument vector.
+ * @return 0 on clean shutdown; 1 on config, startup, or runtime error.
+ * @ingroup cvis_server
+ */
 int main(int argc, char** argv) {
     auto cfg = cvis::runtime::loadConfig(argc, argv);
     if (!cfg) {

@@ -1,3 +1,9 @@
+/**
+ * @file main.cpp
+ * @brief `cvis-bench` executable: CPU-first inference benchmark harness.
+ * @ingroup cvis_bench
+ */
+
 // cvis_bench: benchmark harness (design §8, FR-28..FR-31, NFR-2/NFR-11). Drives
 // IInferenceBackend directly (bypassing gRPC) so it measures compute, not
 // transport, and links only core/backends/metrics. The CPU path always runs;
@@ -198,6 +204,15 @@ void writeCsv(std::ostream& os, const std::vector<CellResult>& cells) {
 
 } // namespace
 
+/**
+ * @brief Benchmark entrypoint: sweep (batch x concurrency) cells on CPU and emit
+ *        JSON/CSV reports.
+ * @param argc Argument count.
+ * @param argv Argument vector (`--batch`, `--concurrency`, `--iterations`,
+ *             `--warmup`, `--out`, `--csv`).
+ * @return 0 on success.
+ * @ingroup cvis_bench
+ */
 int main(int argc, char** argv) {
     const auto batches = parseList(argValue(argc, argv, "--batch"), {1, 4, 8});
     const auto concs = parseList(argValue(argc, argv, "--concurrency"), {1, 2, 4});

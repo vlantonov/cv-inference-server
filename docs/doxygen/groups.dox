@@ -1,0 +1,62 @@
+/**
+ * @file groups.dox
+ * @brief Doxygen module group (`@defgroup`) declarations.
+ *
+ * One group per `cvis_*` library/executable target. Group names match the CMake
+ * target names 1:1 so a reader jumps between the docs, the source tree, and the
+ * build targets without a translation table (design §3). Public headers opt in
+ * with `@ingroup <name>` in a later SDLC stage.
+ */
+
+/**
+ * @defgroup cvis_core Core Value Types
+ * @brief Value types: Tensor, TensorView, DataType, Shape, InferRequest/Response,
+ *        Status/Expected. Depends on nothing project-internal. (`src/core/`)
+ */
+
+/**
+ * @defgroup cvis_backends Inference Backends
+ * @brief `IInferenceBackend` + `FakeBackend` (always); `OnnxRuntimeBackend` /
+ *        `TensorRtBackend` (gated), factory-constructed. (`src/backends/`)
+ */
+
+/**
+ * @defgroup cvis_batching Dynamic Batching
+ * @brief `DynamicBatcher`: coalesce by model, flush on size OR deadline, demux,
+ *        bounded-queue backpressure. (`src/batching/`)
+ */
+
+/**
+ * @defgroup cvis_scheduler Fair Scheduler
+ * @brief `Scheduler`: round-robin fair dispatch, worker pool, bounded in-flight
+ *        batches. (`src/scheduler/`)
+ */
+
+/**
+ * @defgroup cvis_metrics Metrics & Observability
+ * @brief `MetricsRegistry` (counters/histograms/gauges) + Prometheus text
+ *        rendering and the gated HTTP `/metrics` exposer. (`src/metrics/`)
+ */
+
+/**
+ * @defgroup cvis_api gRPC API (gated)
+ * @brief gRPC `InferenceServiceImpl` (unary + streaming), health/readiness, and
+ *        proto <-> core marshalling. Gated on `CVIS_ENABLE_GRPC`. (`src/api/`)
+ */
+
+/**
+ * @defgroup cvis_runtime Runtime & Composition Root
+ * @brief Composition root: `Config` loader, `ModelRegistry`, `ServerApp`
+ *        lifecycle. (`src/runtime/`)
+ */
+
+/**
+ * @defgroup cvis_server Server Executable
+ * @brief Thin `main()` that wires `cvis_runtime`. (`apps/server/`)
+ */
+
+/**
+ * @defgroup cvis_bench Benchmark Harness
+ * @brief Benchmark harness that drives `IInferenceBackend` directly (does not
+ *        depend on `cvis_api`). (`apps/bench/`)
+ */

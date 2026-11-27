@@ -1,0 +1,99 @@
+/**
+ * @page c4_components C4 Component View
+ *
+ * @tableofcontents
+ *
+ * This page renders the **C4 Component** view of the running inference server.
+ * In C4 terms the running **inference server process** is the *Container*; the
+ * `cvis_*` libraries and the two executables are *Components* inside it. Every
+ * edge below is a real **unidirectional** dependency from the architecture note
+ * (upper layers depend on lower; `cvis_core` depends on nothing project-internal).
+ * External actors and systems sit outside the container boundary.
+ *
+ * @section c4_diagram Component diagram
+ *
+ * @startuml cvis_c4_component
+ * !include <C4/C4_Component>
+ *
+ * title cv-inference-server — C4 Component View (Container: inference server process)
+ *
+ * LAYOUT_WITH_LEGEND()
+ *
+ * ' ---------- External actors / systems ----------
+ * Person(unary_client,     "Unary gRPC client",     "Sends Infer RPCs")
+ * Person(stream_client,    "Streaming gRPC client", "Sends StreamInfer RPCs")
+ * System_Ext(prometheus,   "Prometheus",            "Scrapes GET /metrics")
+ * System_Ext(ort_runtime,  "ONNX Runtime",          "CPU EP always; CUDA EP when present [gated]")
+ * System_Ext(trt_runtime,  "TensorRT + CUDA",       "ONNX->TRT engine execution [gated]")
+ *
+ * Container_Boundary(server, "cv-inference-server process") {
+ *
+ *     ' ---------- Executables (composition roots) ----------
+ *     Component(app_server, "cvis-server",   "C++20 executable", "Thin main(); wires cvis_runtime")
+ *     Component(app_bench,  "cvis-bench",    "C++20 executable", "Benchmark harness; drives backends directly (no api)")
+ *
+ *     ' ---------- Libraries, top (transport/composition) to bottom (core) ----------
+ *     Component(runtime,   "cvis_runtime",   "static lib", "Composition root: Config, ModelRegistry, ServerApp lifecycle")
+ *     Component(api,       "cvis_api",       "static lib [gated: CVIS_ENABLE_GRPC]", "gRPC InferenceServiceImpl (unary + streaming), health/readiness; proto <-> core")
+ *     Component(batching,  "cvis_batching",  "static lib", "DynamicBatcher: coalesce by model, flush on size OR deadline, demux, bounded-queue backpressure")
+ *     Component(scheduler, "cvis_scheduler", "static lib", "Scheduler: round-robin fair dispatch, worker pool, bounded in-flight")
+ *     Component(backends,  "cvis_backends",  "static lib", "IInferenceBackend + FakeBackend (always); OnnxRuntimeBackend / TensorRtBackend [gated]")
+ *     Component(metrics,   "cvis_metrics",   "static lib", "MetricsRegistry (counters/histograms/gauges); HTTP /metrics exposer [gated: CVIS_ENABLE_METRICS_HTTP]")
+ *     Component(core,      "cvis_core",      "static lib", "Value types: Tensor, TensorView, DataType, Shape, InferRequest/Response, Status/Expected. Depends on nothing project-internal")
+ *
+ *     ' ---------- Internal dependency edges (unidirectional, arch §1.2) ----------
+ *     Rel(app_server, runtime,  "wires & runs")
+ *     Rel(app_bench,  backends, "drives directly")
+ *     Rel(app_bench,  core,     "uses value types")
+ *     Rel(app_bench,  metrics,  "records")
+ *
+ *     Rel(runtime, api,       "owns gRPC server [gated]")
+ *     Rel(runtime, batching,  "owns")
+ *     Rel(runtime, scheduler, "owns")
+ *     Rel(runtime, backends,  "owns via ModelRegistry")
+ *     Rel(runtime, metrics,   "owns")
+ *     Rel(runtime, core,      "uses")
+ *
+ *     Rel(api,       batching,  "submit(InferRequest) -> future")
+ *     Rel(api,       metrics,   "records")
+ *     Rel(api,       core,      "marshals proto <-> value types")
+ *
+ *     Rel(batching,  scheduler, "enqueue(BatchJob)")
+ *     Rel(batching,  metrics,   "records")
+ *     Rel(batching,  core,      "uses")
+ *
+ *     Rel(scheduler, backends,  "executeBatch(...)")
+ *     Rel(scheduler, metrics,   "records")
+ *     Rel(scheduler, core,      "uses")
+ *
+ *     Rel(backends,  core,      "uses")
+ *     Rel(metrics,   core,      "uses")
+ * }
+ *
+ * ' ---------- External relationships ----------
+ * Rel(unary_client,  api,        "Infer RPC",        "gRPC/HTTP2")
+ * Rel(stream_client, api,        "StreamInfer RPC",  "gRPC/HTTP2")
+ * Rel(prometheus,    metrics,    "GET /metrics",     "HTTP [gated]")
+ * Rel(backends,      ort_runtime,"inference calls [gated: CVIS_ENABLE_ONNXRUNTIME]")
+ * Rel(backends,      trt_runtime,"inference calls [gated: CVIS_ENABLE_TENSORRT]")
+ *
+ * @enduml
+ *
+ * @section c4_legend Legend & conventions
+ *
+ * **Layer rule.** Dependencies are strictly **unidirectional**: a component may
+ * only depend on components in a lower layer. Reading top-to-bottom, the order is
+ * `cvis_runtime` → `cvis_api` → `cvis_batching` → `cvis_scheduler` →
+ * `cvis_backends` / `cvis_metrics` → `cvis_core`. `cvis_core` depends on nothing
+ * project-internal, which is what keeps the core, batching, scheduler, and
+ * backends independently unit-testable on a CPU-only machine. Note that
+ * `cvis-bench` deliberately **does not depend on `cvis_api`** -- it drives
+ * `IInferenceBackend` directly so it measures compute, not transport.
+ *
+ * **The `[gated: ...]` marker.** C4-PlantUML has no first-class "optional"
+ * styling, so gated components carry their build gate inline in the
+ * technology/description string (e.g. `[gated: CVIS_ENABLE_GRPC]`) and gated edges
+ * are tagged `[gated]`. This keeps the diagram truthful about the CPU-only default
+ * (where `cvis_api`, the ONNX Runtime / TensorRT backends, and the Prometheus HTTP
+ * exposer are compiled out) without inventing non-standard shapes.
+ */

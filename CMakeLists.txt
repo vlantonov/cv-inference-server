@@ -64,6 +64,11 @@ if(CVIS_BUILD_TESTS)
 endif()
 
 # ---------------------------------------------------------------------------
+# Documentation (Doxygen + C4 diagram) -- optional, not part of ALL.
+# ---------------------------------------------------------------------------
+include(Docs)
+
+# ---------------------------------------------------------------------------
 # Configuration summary
 # ---------------------------------------------------------------------------
 message(STATUS "")
@@ -72,6 +77,7 @@ message(STATUS "  Build type ............ ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ standard .......... ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Tests (CVIS_BUILD_TESTS) . ${CVIS_BUILD_TESTS}")
 message(STATUS "  Bench (CVIS_BUILD_BENCH) . ${CVIS_BUILD_BENCH}")
+message(STATUS "  Docs  (CVIS_BUILD_DOCS) .. ${CVIS_BUILD_DOCS}")
 message(STATUS "  Sanitizers ............ ${CVIS_ENABLE_SANITIZERS} (${CVIS_SANITIZER})")
 message(STATUS "  -- optional / gated deps --")
 message(STATUS "  gRPC transport ........ ${CVIS_ENABLE_GRPC}")

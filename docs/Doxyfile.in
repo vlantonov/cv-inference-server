@@ -1,0 +1,151 @@
+# Doxyfile template for cv-inference-server.
+#
+# Configured by CMake (cmake/Docs.cmake) via configure_file(... @ONLY):
+# every @VAR@ below is substituted at configure time. Do not run doxygen on
+# this template directly -- run it on the generated <build>/Doxyfile.
+#
+# Design reference: docs/design/doxygen-c4.md §1.
+
+#---------------------------------------------------------------------------
+# Project information
+#---------------------------------------------------------------------------
+PROJECT_NAME           = "@PROJECT_NAME@"
+PROJECT_NUMBER         = "@PROJECT_VERSION@"
+PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
+
+OUTPUT_DIRECTORY       = @DOXYGEN_OUTPUT_DIR@
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = NO
+OUTPUT_LANGUAGE        = English
+MARKDOWN_SUPPORT       = YES
+TOC_INCLUDE_HEADINGS   = 5
+AUTOLINK_SUPPORT       = YES
+BUILTIN_STL_SUPPORT    = YES
+
+#---------------------------------------------------------------------------
+# Build related configuration options
+#---------------------------------------------------------------------------
+# EXTRACT_ALL=NO so only intentionally documented entities surface (design §1.2).
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = YES
+CASE_SENSE_NAMES       = YES
+SORT_MEMBER_DOCS       = YES
+GENERATE_TODOLIST      = YES
+SHOW_USED_FILES        = YES
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+GROUP_NESTED_COMPOUNDS = YES
+
+#---------------------------------------------------------------------------
+# Warning and progress messages
+#---------------------------------------------------------------------------
+QUIET                  = NO
+WARNINGS               = YES
+# Keep undocumented-header noise off for now -- source headers are documented
+# in a later SDLC stage (design §1.4). Still flag malformed doc comments.
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO
+
+#---------------------------------------------------------------------------
+# Configuration options related to the input files
+#---------------------------------------------------------------------------
+INPUT                  = @CMAKE_SOURCE_DIR@/src \
+                         @CMAKE_SOURCE_DIR@/apps \
+                         @CMAKE_SOURCE_DIR@/docs/doxygen \
+                         @CMAKE_SOURCE_DIR@/README.md
+
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.hpp \
+                         *.h \
+                         *.cpp \
+                         *.md \
+                         *.dox
+RECURSIVE              = YES
+
+# Keep docs about *our* code: exclude the build tree, generated proto stubs,
+# and third-party / package-manager directories (design §1.2).
+EXCLUDE                = @CMAKE_BINARY_DIR@
+EXCLUDE_PATTERNS       = */build/* \
+                         */build-*/* \
+                         */_deps/* \
+                         */vcpkg_installed/* \
+                         */conan/* \
+                         *.pb.h \
+                         *.pb.cc \
+                         *.grpc.pb.h \
+                         *.grpc.pb.cc
+EXCLUDE_SYMLINKS       = NO
+
+USE_MDFILE_AS_MAINPAGE =
+
+#---------------------------------------------------------------------------
+# Configuration options related to source browsing
+#---------------------------------------------------------------------------
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+VERBATIM_HEADERS       = YES
+
+#---------------------------------------------------------------------------
+# Configuration options related to the HTML output
+#---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_COLORSTYLE        = AUTO_LIGHT
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_DYNAMIC_SECTIONS  = YES
+
+#---------------------------------------------------------------------------
+# Configuration options related to the LaTeX output
+#---------------------------------------------------------------------------
+GENERATE_LATEX         = NO
+
+#---------------------------------------------------------------------------
+# Configuration options related to the preprocessor
+#---------------------------------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+# Document gated symbols unconditionally (design §1.4) by pre-defining the gates.
+PREDEFINED             = CVIS_ENABLE_GRPC=1 \
+                         CVIS_ENABLE_ONNXRUNTIME=1 \
+                         CVIS_ENABLE_TENSORRT=1 \
+                         CVIS_ENABLE_METRICS_HTTP=1 \
+                         CVIS_ENABLE_CONFIG_YAML=1 \
+                         CVIS_ENABLE_CUDA=1
+
+#---------------------------------------------------------------------------
+# Configuration options related to diagram generator tools
+#---------------------------------------------------------------------------
+HIDE_UNDOC_RELATIONS   = YES
+HAVE_DOT               = YES
+DOT_NUM_THREADS        = 0
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+GROUP_GRAPHS           = YES
+UML_LOOK               = NO
+TEMPLATE_RELATIONS     = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+GRAPHICAL_HIERARCHY    = YES
+DIRECTORY_GRAPH        = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+DOT_PATH               = @DOXYGEN_DOT_PATH@
+DOT_MULTI_TARGETS      = YES
+GENERATE_LEGEND        = YES
+
+# PlantUML: directory holding plantuml.jar (resolved by CMake). The C4 macros
+# are pulled from PlantUML's bundled standard library (!include <C4/...>), so
+# PLANTUML_INCLUDE_PATH stays empty (design §2.1).
+PLANTUML_JAR_PATH      = @PLANTUML_JAR_DIR@
+PLANTUML_INCLUDE_PATH  =

@@ -1,0 +1,63 @@
+/**
+ * @mainpage cv-inference-server
+ *
+ * @tableofcontents
+ *
+ * @section mainpage_overview Overview
+ *
+ * **cv-inference-server** is a real-time computer-vision model serving system in
+ * modern C++20, built as a portfolio project. It demonstrates the core building
+ * blocks of a low-latency inference service:
+ *
+ * - a pluggable **backend abstraction** (`IInferenceBackend` + `FakeBackend`,
+ *   with gated ONNX Runtime / TensorRT backends),
+ * - **dynamic request batching** against a latency budget (`DynamicBatcher`),
+ * - **fair compute scheduling** with backpressure (`Scheduler`),
+ * - an **observability surface** (`MetricsRegistry`, Prometheus text + gated
+ *   HTTP exposer), and
+ * - a reproducible **benchmark harness** across compute paths (`cvis-bench`).
+ *
+ * @section mainpage_value Value proposition
+ *
+ * Serving CV models in real time is not just "call the model" -- it is coalescing
+ * bursty concurrent requests into batches without blowing a latency budget,
+ * dispatching those batches fairly across compute so no model starves, applying
+ * backpressure instead of growing memory unbounded, and being able to *measure*
+ * all of it reproducibly. The project implements that pipeline as clean,
+ * independently testable C++20 modules that degrade gracefully from a GPU host
+ * down to a CPU-only laptop.
+ *
+ * @section mainpage_status Feature status
+ *
+ * Capabilities fall into three honest buckets:
+ *
+ * - **Works on CPU-only / exercised in CI** -- core value types, the fake echo
+ *   backend and backend factory, `DynamicBatcher`, `Scheduler`, `MetricsRegistry`,
+ *   the `cvis-bench` CPU path, and the `cvis-server` core pipeline.
+ * - **Present but flag-gated / GPU-only** -- the gRPC transport (`cvis_api`),
+ *   ONNX Runtime / TensorRT backends, the Prometheus HTTP exposer, YAML/CLI
+ *   config, and the CUDA/Vulkan benchmark cells.
+ * - **Deferred** -- runtime model load/unload RPCs, GPU CI, the Vulkan compute
+ *   path, and empirical latency baselining on hardware.
+ *
+ * See the top-level @c README.md for the full breakdown.
+ *
+ * @section mainpage_navigation Where to go next
+ *
+ * - @ref c4_components -- the C4 Component view of the running inference server
+ *   process, with the real unidirectional layer dependencies.
+ * - Module groups (one landing page per `cvis_*` library/executable):
+ *   - @ref cvis_core
+ *   - @ref cvis_backends
+ *   - @ref cvis_batching
+ *   - @ref cvis_scheduler
+ *   - @ref cvis_metrics
+ *   - @ref cvis_api
+ *   - @ref cvis_runtime
+ *   - @ref cvis_server
+ *   - @ref cvis_bench
+ *
+ * The full design (interface signatures, concurrency model, rationale) lives in
+ * `docs/design/architecture.md` and `docs/design/interfaces.md`; requirements are
+ * in `docs/requirements/SRS.md`.
+ */

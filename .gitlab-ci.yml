@@ -4,6 +4,7 @@
 stages:
   - build-test
   - sanitizers
+  - pages
 
 default:
   image: ubuntu:24.04
@@ -58,3 +59,37 @@ sanitizers:
       -DCVIS_SANITIZER=$CVIS_SANITIZER
     - cmake --build build-san --parallel
     - setarch "$(uname -m)" -R ctest --test-dir build-san --output-on-failure
+
+# ---------------------------------------------------------------------------
+# Publish the Doxygen documentation to GitLab Pages.
+#
+# GitLab Pages contract: the job MUST be named `pages`, and the site it serves
+# MUST end up in a `public/` directory declared as an artifact. Still CPU-only
+# and free-tier safe -- the docs toolchain is plain apt packages: doxygen +
+# graphviz (`dot`) + plantuml (pulls a JRE). PlantUML's bundled C4 stdlib
+# resolves OFFLINE, so the C4 component diagram needs no network.
+#
+# The default `before_script` installs cmake/g++; we extend it here (and do NOT
+# override it) so the docs toolchain is added on top without breaking it.
+# No FetchContent in the docs build, so the shared .deps cache is intentionally
+# not reused -- keep this job lean.
+# ---------------------------------------------------------------------------
+pages:
+  stage: pages
+  # Default branch only -- keeps published docs authoritative and free-tier safe.
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - !reference [default, before_script]
+    - apt-get install -y -qq --no-install-recommends doxygen graphviz plantuml
+    - doxygen --version
+    - dot -V
+  script:
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCVIS_BUILD_DOCS=ON
+    - cmake --build build --target docs
+    # GitLab Pages serves whatever lands in public/.
+    - rm -rf public
+    - mv build/docs/html public
+  artifacts:
+    paths:
+      - public

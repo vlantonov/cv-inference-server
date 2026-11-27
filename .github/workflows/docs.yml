@@ -1,0 +1,86 @@
+# Publish the Doxygen documentation to GitHub Pages.
+#
+# Dedicated workflow (kept out of ci.yml) that builds the HTML docs and deploys
+# them with GitHub's official Pages flow. Still CPU-only and free-tier safe: the
+# docs toolchain is plain apt packages -- doxygen + graphviz (`dot`) + plantuml
+# (pulls a JRE). PlantUML's bundled C4 stdlib resolves OFFLINE, so no network is
+# needed for the C4 component diagram (design §12, NFR-8).
+#
+# Pages contract: `build` produces the site tarball via actions/upload-pages-
+# artifact, and `deploy` publishes it with actions/deploy-pages into the
+# `github-pages` environment. This needs `pages: write` + `id-token: write`.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    # Only rebuild docs when something that affects them changes. A plain
+    # push-to-main would also be fine; the filter just saves free-tier minutes.
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "apps/**"
+      - "**/*.h"
+      - "**/*.hpp"
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - ".github/workflows/docs.yml"
+  # Allow manual publishing from the Actions tab.
+  workflow_dispatch:
+
+# Required by the GitHub Pages deployment flow.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Serialise Pages deployments; do not cancel an in-flight publish (GitHub's
+# documented pattern -- a cancelled deploy can leave Pages half-updated).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build the Doxygen HTML and upload it as a Pages artifact.
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build Doxygen HTML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # doxygen = the generator, graphviz = `dot` for call/collaboration graphs,
+      # plantuml = the C4 component diagram (bundled stdlib resolves offline).
+      - name: Install docs toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends doxygen graphviz plantuml
+          doxygen --version
+          dot -V
+
+      - name: Configure (docs enabled)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCVIS_BUILD_DOCS=ON
+
+      - name: Build docs
+        run: cmake --build build --target docs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/docs/html
+
+  # ---------------------------------------------------------------------------
+  # Deploy the uploaded artifact to GitHub Pages.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
